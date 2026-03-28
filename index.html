@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doctor Doctor: Let's Code | MASTER BUILD 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-purple: #bc13fe;
+            --neon-green: #39ff14;
+            --denial-red: #ff0055;
+            --bg-dark: #05080a;
+            --glass: rgba(10, 25, 41, 0.85);
+            --border: rgba(0, 242, 255, 0.3);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: linear-gradient(to bottom, rgba(5, 8, 10, 0.8), rgba(5, 8, 10, 0.6)), 
+                              url('http://googleusercontent.com/image_generation_content/0.png');
+            background-size: cover;
+            background-position: center;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Scanline Overlay */
+        body::after {
+            content: " ";
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* HUD */
+        #hud {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid var(--neon-blue);
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            z-index: 100;
+        }
+
+        .stat-label { color: var(--neon-blue); margin-right: 5px; }
+        .stat-val { text-shadow: 0 0 8px var(--neon-blue); }
+
+        /* Game Stage */
+        #stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            perspective: 1000px;
+        }
+
+        /* Glass Cards */
+        .terminal {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 92% 100%, 0 100%);
+            animation: bootUp 0.5s ease-out;
+        }
+
+        @keyframes bootUp {
+            0% { opacity: 0; transform: scaleY(0.01) scaleX(0); }
+            50% { opacity: 1; transform: scaleY(1) scaleX(0.01); }
+            100% { transform: scaleY(1) scaleX(1); }
+        }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: var(--neon-blue);
+            margin-top: 0;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .form-row {
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(0,0,0,0.4);
+            border-left: 3px solid var(--neon-blue);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .form-row:hover { background: rgba(0, 242, 255, 0.1); transform: translateX(5px); }
+        .row-label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
+        .row-data { font-weight: bold; font-size: 16px; }
+
+        .denial { border-left-color: var(--denial-red); color: var(--denial-red); animation: shake 0.5s infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+
+        /* Buttons */
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.3s;
+        }
+
+        .action-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); }
+        .hidden { display: none !important; }
+
+        /* Comms Box */
+        #skye-comms {
+            height: 120px;
+            background: rgba(0,0,0,0.95);
+            border-top: 1px solid var(--neon-purple);
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #skye-avatar {
+            width: 60px; height: 60px;
+            background: var(--neon-purple);
+            border-radius: 50%;
+            border: 2px solid #fff;
+            flex-shrink: 0;
+            background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Skye');
+            background-size: cover;
+        }
+
+        #skye-text { font-size: 15px; line-height: 1.5; color: #ccc; }
+        #skye-text b { color: var(--neon-purple); display: block; margin-bottom: 4px; }
+
+        /* Silicon Pulse Styles */
+        .ai-mode { border-color: var(--neon-purple) !important; }
+        .ai-mode h2 { color: var(--neon-purple); }
+        .retro-filter { filter: sepia(1) hue-rotate(90deg) brightness(0.8); }
+    </style>
+</head>
+<body>
+
+<div id="hud">
+    <div><span class="stat-label">RANK:</span> <span id="rank-val" class="stat-val">COLLECTOR</span></div>
+    <div><span class="stat-label">REV:</span> <span id="gold-val" class="stat-val">$0</span></div>
+    <div><span class="stat-label">XP:</span> <span id="xp-val" class="stat-val">0</span></div>
+</div>
+
+<div id="stage">
+    <div id="level-root"></div>
+</div>
+
+<div id="skye-comms">
+    <div id="skye-avatar"></div>
+    <div id="skye-text"><b>SKYE (SYS_OPERATOR)</b>Initializing neural link... Waiting for claim intake.</div>
+</div>
+
+<script>
+    // --- COMPREHENSIVE MEDICAL DATABASE ---
+    const DB = {
+        diagnoses: {
+            "J00": "Acute Nasopharyngitis (Common Cold)",
+            "I20.0": "Unstable Angina",
+            "M17.11": "Osteoarthritis, Right Knee",
+            "N18.4": "Chronic Kidney Disease, Stage 4",
+            "J45.909": "Unspecified Asthma, Uncomplicated"
+        },
+        procedures: {
+            "99213": "Office Visit (Established)",
+            "99284": "ER Visit (High Severity)",
+            "27447": "Total Knee Arthroplasty",
+            "93000": "Electrocardiogram (EKG)",
+            "0DBJ0ZZ": "Open Appendectomy (PCS)"
+        },
+        modifiers: {
+            "-25": "Separately Identifiable E&M",
+            "-50": "Bilateral Procedure",
+            "-95": "Synchronous Telemedicine"
+        }
+    };
+
+    let gameState = {
+        gold: 0,
+        xp: 0,
+        level: 1,
+        rank: "COLLECTOR"
+    };
+
+    function updateHUD() {
+        document.getElementById('gold-val').innerText = `$${gameState.gold.toLocaleString()}`;
+        document.getElementById('xp-val').innerText = gameState.xp;
+        document.getElementById('rank-val').innerText = gameState.rank;
+    }
+
+    function say(text) {
+        document.getElementById('skye-text').innerHTML = `<b>SKYE (SYS_OPERATOR)</b>${text}`;
+    }
+
+    // --- LEVEL ENGINE ---
+    function renderLevel() {
+        const root = document.getElementById('level-root');
+        root.innerHTML = "";
+        document.body.classList.remove('retro-filter');
+
+        switch(gameState.level) {
+            case 1: // THE INTAKE
+                say("Welcome to the floor. We have a simple office visit. Correct the gender error and input the code for 'Common Cold'.");
+                root.innerHTML = `
+                    <div class="terminal">
+                        <h2>HCFA-1500 | Professional</h2>
+                        <div class="form-row denial" onclick="fix(this, 'GENDER: MALE')">
+                            <span class="row-label">Field 3: Gender</span>
+                            <span class="row-data">FEMALE</span>
+                        </div>
+                        <div class="form-row" onclick="ask('J00', this, 'ICD-10: J00')">
+                            <span class="row-label">Field 21: Diagnosis</span>
+                            <span class="row-data">[ INPUT CODE ]</span>
+                        </div>
+                        <button class="action-btn hidden" id="next" onclick="progress(1)">SUBMIT CLEAN CLAIM</button>
+                    </div>
+                `;
+                break;
+
+            case 2: // DENIAL DUNGEON
+                say("CRITICAL REJECTION! The Auditor tagged this ER claim for 'Medical Necessity'. Use your knowledge of Modifiers to bypass.");
+                root.innerHTML = `
+                    <div class="terminal" style="border-color:var(--denial-red)">
+                        <h2 style="color:var(--denial-red)">REJECTION: CO-50</h2>
+                        <div class="form-row"><span class="row-label">CPT</span><span class="row-data">99284 (ER High)</span></div>
+                        <div class="form-row denial" onclick="fix(this, 'MODIFIER -25 APPLIED')">
+                            <span class="row-label">Missing Linkage</span>
+                            <span class="row-data">ADD MODIFIER</span>
+                        </div>
+                        <button class="action-btn hidden" id="next" onclick="progress(2)">APPEAL & RECOVER $4,200</button>
+                    </div>
+                `;
+                break;
+
+            case 5: // RETRO GLITCH
+                document.body.classList.add('retro-filter');
+                say("Whoa! We've hit a 1999 Archive. ICD-9 logic detected. Map '493.90' to its modern ICD-10 equivalent.");
+                root.innerHTML = `
+                    <div class="terminal" style="border-color:var(--neon-green)">
+                        <h2 style="color:var(--neon-green)">LEGACY_DECRYPTOR.SYS</h2>
+                        <div class="form-row"><span class="row-label">Old Code</span><span class="row-data">ICD-9: 493.90 (Asthma)</span></div>
+                        <div class="form-row" onclick="ask('J45.909', this, 'ICD-10: J45.909')">
+                            <span class="row-label">New Mapping</span>
+                            <span class="row-data">[ TRANSLATE ]</span>
+                        </div>
+                        <button class="action-btn hidden" id="next" onclick="progress(5)">RESTORE SYSTEM</button>
+                    </div>
+                `;
+                break;
+
+            case 15: // UB-04 PCS
+                gameState.rank = "SENIOR CODER";
+                updateHUD();
+                say("Facility billing. Construct the 7-character PCS code for an Open Appendectomy.");
+                root.innerHTML = `
+                    <div class="terminal">
+                        <h2>UB-04 | Institutional</h2>
+                        <div class="form-row" onclick="ask('0DBJ0ZZ', this, 'PCS: 0DBJ0ZZ')">
+                            <span class="row-label">Field 74: Principal Procedure</span>
+                            <span class="row-data">[ _ _ _ _ _ _ _ ]</span>
+                        </div>
+                        <button class="action-btn hidden" id="next" onclick="progress(15)">VALIDATE FACILITY CLAIM</button>
+                    </div>
+                `;
+                break;
+
+            case 20: // SILICON PULSE DLC - TELEMEDICINE
+                say("SILICON PULSE DLC ACTIVE. This visit happened via VR link. We need the Telemedicine modifier.");
+                root.innerHTML = `
+                    <div class="terminal ai-mode">
+                        <h2>TELEHEALTH MODULE</h2>
+                        <div class="form-row"><span class="row-label">Service</span><span class="row-data">99213 (Remote)</span></div>
+                        <div class="form-row denial" onclick="fix(this, 'MODIFIER -95 ADDED')">
+                            <span class="row-label">Compliance</span>
+                            <span class="row-data">ADD REMOTE MODIFIER</span>
+                        </div>
+                        <button class="action-btn hidden" id="next" onclick="progress(20)">SYNC REMOTE REVENUE</button>
+                    </div>
+                `;
+                break;
+
+            case 21: // SILICON PULSE DLC - AI AUDIT
+                say("A.I.D.A. is suggesting a code for Stage 4 CKD. Is she hallucinating? Validate her work.");
+                root.innerHTML = `
+                    <div class="terminal ai-mode">
+                        <h2>A.I.D.A. AUTO-CODE</h2>
+                        <div class="form-row"><span class="row-label">Note</span><span class="row-data">CKD, Stage 4</span></div>
+                        <div class="form-row"><span class="row-label">AI Suggestion</span><span class="row-data">N18.4</span></div>
+                        <button class="action-btn" onclick="aiValidate(true)">CONFIRM AI (N18.4)</button>
+                        <button class="action-btn" onclick="aiValidate(false)">OVERRIDE AI</button>
+                    </div>
+                `;
+                break;
+
+            case 100: // FINAL EXAM
+                say("This is it. The Audit Overlord. Answer correctly or face total denial!");
+                bossFight();
+                break;
+        }
+    }
+
+    // --- GAMEPLAY ACTIONS ---
+    function fix(el, text) {
+        el.innerHTML = `<span class="row-label">FIXED</span><span class="row-data" style="color:var(--neon-green)">${text}</span>`;
+        el.classList.remove('denial');
+        el.style.borderColor = "var(--neon-green)";
+        checkReady();
+    }
+
+    function ask(correct, el, display) {
+        let val = prompt("Enter Code:");
+        if (val && val.toUpperCase() === correct) {
+            el.innerHTML = `<span class="row-label">VALIDATED</span><span class="row-data" style="color:var(--neon-green)">${display}</span>`;
+            el.style.borderColor = "var(--neon-green)";
+            checkReady();
+        } else {
+            alert("INCORRECT. Check your DB and try again.");
+        }
+    }
+
+    function checkReady() {
+        if (document.querySelectorAll('.denial').length === 0 && !document.querySelector('.terminal').innerHTML.includes('[ ')) {
+            document.getElementById('next').classList.remove('hidden');
+        }
+    }
+
+    function aiValidate(isCorrect) {
+        if(isCorrect) {
+            say("Correct! N18.4 is Stage 4 CKD. A.I.D.A. is functioning perfectly.");
+            gameState.xp += 500;
+            updateHUD();
+            setTimeout(() => { gameState.level = 100; renderLevel(); }, 1500);
+        } else {
+            alert("Incorrect! A.I.D.A. was right this time.");
+        }
+    }
+
+    function progress(lvl) {
+        gameState.gold += (lvl * 1000);
+        gameState.xp += (lvl * 100);
+        updateHUD();
+        if (lvl == 1) gameState.level = 2;
+        else if (lvl == 2) gameState.level = 5;
+        else if (lvl == 5) gameState.level = 15;
+        else if (lvl == 15) gameState.level = 20;
+        else if (lvl == 20) gameState.level = 21;
+        renderLevel();
+    }
+
+    function bossFight() {
+        const root = document.getElementById('level-root');
+        root.innerHTML = `
+            <div class="terminal" style="border-color:gold">
+                <h2 style="color:gold">CERTIFICATION EXAM</h2>
+                <p>FINAL QUESTION: Which form is used for INSTITUTIONAL hospital billing?</p>
+                <button class="action-btn" onclick="end(false)">HCFA-1500</button>
+                <button class="action-btn" onclick="end(true)">UB-04</button>
+            </div>
+        `;
+    }
+
+    function end(win) {
+        const root = document.getElementById('level-root');
+        if(win) {
+            gameState.rank = "MASTER CODER";
+            updateHUD();
+            say("Access Granted. You are now a Certified Master Coder. Neo-Gen Medical Center is saved!");
+            root.innerHTML = `<div class="terminal" style="text-align:center; border-color:gold"><h1 style="color:gold">CERTIFIED</h1><p>Master Revenue Architect</p><button class="action-btn" onclick="location.reload()">REPLAY CAMPAIGN</button></div>`;
+        } else {
+            alert("DENIED! UB-04 is for hospitals. Start over!");
+            location.reload();
+        }
+    }
+
+    // Initialize
+    renderLevel();
+    updateHUD();
+
+</script>
+</body>
+</html>
